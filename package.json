@@ -1,0 +1,48 @@
+{
+  "name": "support-blackroad-io",
+  "version": "1.0.0",
+  "description": "BlackRoad Support Center - Cloudflare Workers with Agent Jobs",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:production": "wrangler deploy --env production",
+    "tail": "wrangler tail",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write src/**/*.ts",
+    "jobs:trigger": "curl -X POST http://localhost:8787/api/jobs/trigger-all",
+    "jobs:status": "curl http://localhost:8787/api/jobs/status"
+  },
+  "keywords": [
+    "blackroad",
+    "cloudflare-workers",
+    "agent-jobs",
+    "support-center",
+    "durable-objects"
+  ],
+  "author": "BlackRoad OS, Inc.",
+  "license": "SEE LICENSE IN LICENSE",
+  "private": true,
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240117.0",
+    "@types/node": "^20.11.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "eslint": "^8.56.0",
+    "prettier": "^3.2.4",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0",
+    "wrangler": "^3.24.0"
+  },
+  "dependencies": {
+    "hono": "^3.12.0",
+    "zod": "^3.22.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

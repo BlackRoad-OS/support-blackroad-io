@@ -1,0 +1,158 @@
+# ⬛⬜🛣️ BlackRoad Support Center - Cloudflare Workers Configuration
+# https://developers.cloudflare.com/workers/
+
+name = "support-blackroad-io"
+main = "src/index.ts"
+compatibility_date = "2024-01-15"
+compatibility_flags = ["nodejs_compat"]
+
+# ============================================================================
+# DURABLE OBJECTS - Agent Job State Management
+# ============================================================================
+[durable_objects]
+bindings = [
+  { name = "AGENT_JOB_MANAGER", class_name = "AgentJobManager" },
+  { name = "REPO_SYNC_STATE", class_name = "RepoSyncState" },
+  { name = "SELF_HEALER", class_name = "SelfHealer" },
+  { name = "COHESIVENESS_TRACKER", class_name = "CohesivenessTracker" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["AgentJobManager", "RepoSyncState", "SelfHealer", "CohesivenessTracker"]
+
+# ============================================================================
+# KV NAMESPACES - Fast Key-Value Storage
+# ============================================================================
+[[kv_namespaces]]
+binding = "REPO_CACHE"
+id = "repo_cache_namespace_id"
+preview_id = "repo_cache_preview_id"
+
+[[kv_namespaces]]
+binding = "JOB_LOGS"
+id = "job_logs_namespace_id"
+preview_id = "job_logs_preview_id"
+
+[[kv_namespaces]]
+binding = "CONFIG_STORE"
+id = "config_store_namespace_id"
+preview_id = "config_store_preview_id"
+
+# ============================================================================
+# QUEUES - Async Job Processing
+# ============================================================================
+[[queues.producers]]
+queue = "agent-jobs-queue"
+binding = "JOBS_QUEUE"
+
+[[queues.consumers]]
+queue = "agent-jobs-queue"
+max_batch_size = 10
+max_batch_timeout = 30
+max_retries = 3
+dead_letter_queue = "agent-jobs-dlq"
+
+[[queues.producers]]
+queue = "agent-jobs-dlq"
+binding = "JOBS_DLQ"
+
+[[queues.consumers]]
+queue = "agent-jobs-dlq"
+max_batch_size = 5
+max_batch_timeout = 60
+max_retries = 1
+
+# ============================================================================
+# CRON TRIGGERS - Scheduled Jobs for Auto-Updates
+# ============================================================================
+[triggers]
+crons = [
+  # Repo sync every 15 minutes
+  "*/15 * * * *",
+  # Cohesiveness check every hour
+  "0 * * * *",
+  # Self-healing check every 5 minutes
+  "*/5 * * * *",
+  # Deep repo analysis daily at 2 AM UTC
+  "0 2 * * *",
+  # Weekly full reconciliation Sundays at 3 AM UTC
+  "0 3 * * 0"
+]
+
+# ============================================================================
+# R2 STORAGE - For larger data/artifacts
+# ============================================================================
+[[r2_buckets]]
+binding = "ARTIFACTS_BUCKET"
+bucket_name = "blackroad-artifacts"
+preview_bucket_name = "blackroad-artifacts-preview"
+
+# ============================================================================
+# ENVIRONMENT VARIABLES
+# ============================================================================
+[vars]
+ENVIRONMENT = "development"
+LOG_LEVEL = "debug"
+BLACKROAD_ORG = "BlackRoad-OS"
+PRIMARY_REPOS = "blackroad-prism-console,support-blackroad-io,blackroad-core,blackroad-api"
+SELF_HEAL_ENABLED = "true"
+COHESIVENESS_STRICT = "true"
+
+# ============================================================================
+# SECRETS (set via wrangler secret put)
+# ============================================================================
+# GITHUB_TOKEN - GitHub API access token
+# WEBHOOK_SECRET - Webhook signature verification
+# DISCORD_WEBHOOK_URL - Notifications webhook
+# ENCRYPTION_KEY - Data encryption key
+
+# ============================================================================
+# DEVELOPMENT ENVIRONMENT
+# ============================================================================
+[env.dev]
+name = "support-blackroad-io-dev"
+vars = { ENVIRONMENT = "development", LOG_LEVEL = "debug" }
+
+# ============================================================================
+# STAGING ENVIRONMENT
+# ============================================================================
+[env.staging]
+name = "support-blackroad-io-staging"
+vars = { ENVIRONMENT = "staging", LOG_LEVEL = "info" }
+routes = [
+  { pattern = "staging-support.blackroad.io/*", zone_name = "blackroad.io" }
+]
+
+# ============================================================================
+# PRODUCTION ENVIRONMENT
+# ============================================================================
+[env.production]
+name = "support-blackroad-io-prod"
+vars = { ENVIRONMENT = "production", LOG_LEVEL = "warn", SELF_HEAL_ENABLED = "true" }
+routes = [
+  { pattern = "support.blackroad.io/*", zone_name = "blackroad.io" },
+  { pattern = "api.support.blackroad.io/*", zone_name = "blackroad.io" }
+]
+
+# ============================================================================
+# OBSERVABILITY
+# ============================================================================
+[observability]
+enabled = true
+
+[observability.logs]
+enabled = true
+invocation_logs = true
+
+# ============================================================================
+# BUILD CONFIGURATION
+# ============================================================================
+[build]
+command = "npm run typecheck"
+
+# ============================================================================
+# LIMITS
+# ============================================================================
+[limits]
+cpu_ms = 50000
